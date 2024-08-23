@@ -3,6 +3,4 @@ google-generativeai
 pymupdf
 python-docx
 python-pptx
-comtypes
-pywin32
 requests
