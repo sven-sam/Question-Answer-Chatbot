@@ -1,4 +1,4 @@
-                                                                      ****Study Helper: Question Answer Chatbot****
+                              ****Study Helper: Question Answer Chatbot****
 
 This project is a Study Helper application built with Streamlit. It allows users to upload documents (PDF, DOCX, PPTX, DOC, PPT, and TXT) and then provides several functionalities, including summarization, topic-based summaries, concept explanations, custom quiz generation, and answering questions based on the content of the uploaded document.
 
@@ -21,6 +21,8 @@ Requirements:
         comtypes
         pythoncom
         requests
+
+        
 Usage:
         Run the Streamlit App:  streamlit run app.py
         Upload Your Document:  Use the file uploader to select and upload a document in one of the supported formats.
@@ -29,10 +31,14 @@ Usage:
         Explain Concepts:  Enter a concept in the input box and click "Explain Concept" to get an explanation based on the document and additional web search results.
         Generate a Custom Quiz:  Enter a topic and click "Generate Custom Quiz" to create quiz questions based on the document's content.
         Ask a Question:  Enter a question in the input box to get an answer based on the document.
+
+        
 Deploying on Streamlit Community Cloud:
         You can deploy the app on Streamlit Community Cloud
         Push your code to GitHub.
         Navigate to Streamlit Community Cloud and link your GitHub repository.
         Click "Deploy" to make your app live.
+
+        
 Contributing:
         Contributions are welcome! Please fork the repository and submit a pull request with your changes.
