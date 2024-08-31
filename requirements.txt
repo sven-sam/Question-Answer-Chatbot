@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 streamlit
 google-generativeai
 pymupdf
@@ -6,3 +7,11 @@ python-pptx
 comtypes
 pywin32
 requests
+=======
+streamlit
+google-generativeai
+pymupdf
+python-docx
+python-pptx
+requests
+>>>>>>> 45a717688738a13e0dc09efe228f54d7c6f29b08
