@@ -1,14 +1,16 @@
-import tempfile
 import os
+import tempfile
 import streamlit as st
 import google.generativeai as genai
 import fitz
 import docx
 from pptx import Presentation
-import platform
+import comtypes.client
+import pythoncom
+from io import BytesIO
 import requests
+import re
 
-# Set up environment variables
 os.environ["GOOGLE_API_KEY"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
 os.environ["GOOGLE_CSE_ID"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
 
@@ -17,7 +19,6 @@ google_cse_id = os.getenv("GOOGLE_CSE_ID")
 
 if not google_api_key or not google_cse_id:
     raise ValueError("GOOGLE_API_KEY or GOOGLE_CSE_ID not found in environment variables.")
-
 genai.configure(api_key=google_api_key)
 
 def perform_web_search(query):
@@ -50,6 +51,25 @@ def extract_text_from_docx(file):
         text += paragraph.text + "\n"
     return text
 
+def extract_text_from_doc(file):
+    text = ""
+    try:
+        pythoncom.CoInitialize()
+        word = comtypes.client.CreateObject('Word.Application')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".doc") as temp_file:
+            temp_file.write(file.read())
+            temp_file_path = temp_file.name
+        doc = word.Documents.Open(temp_file_path, ReadOnly=True)
+        text = doc.Content.Text
+        doc.Close(False)
+        word.Quit()
+        os.remove(temp_file_path)
+    except Exception as e:
+        text = f"Failed to extract text from DOC: {e}"
+    finally:
+        pythoncom.CoUninitialize()
+    return text
+
 def extract_text_from_pptx(file):
     text = ""
     try:
@@ -62,55 +82,26 @@ def extract_text_from_pptx(file):
         text = f"Failed to extract text from PPTX: {e}"
     return text
 
-def extract_text_from_doc(file):
-    text = ""
-    if platform.system() == "Windows":
-        try:
-            import comtypes.client
-            import pythoncom
-            pythoncom.CoInitialize()
-            word = comtypes.client.CreateObject('Word.Application')
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".doc") as temp_file:
-                temp_file.write(file.read())
-                temp_file_path = temp_file.name
-            doc = word.Documents.Open(temp_file_path, ReadOnly=True)
-            text = doc.Content.Text
-            doc.Close(False)
-            word.Quit()
-            os.remove(temp_file_path)
-        except Exception as e:
-            text = f"Failed to extract text from DOC: {e}"
-        finally:
-            pythoncom.CoUninitialize()
-    else:
-        text = "DOC file extraction is only supported on Windows."
-    return text
-
 def extract_text_from_ppt(file):
     text = ""
-    if platform.system() == "Windows":
-        try:
-            import comtypes.client
-            import pythoncom
-            pythoncom.CoInitialize()
-            ppt = comtypes.client.CreateObject('PowerPoint.Application')
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".ppt") as temp_file:
-                temp_file.write(file.read())
-                temp_file_path = temp_file.name
-            presentation = ppt.Presentations.Open(temp_file_path, ReadOnly=True)
-            for slide in presentation.Slides:
-                for shape in presentation.Shapes:
-                    if shape.HasTextFrame and shape.TextFrame.HasText:
-                        text += shape.TextFrame.TextRange.Text + "\n"
-            presentation.Close()
-            ppt.Quit()
-            os.remove(temp_file_path)
-        except Exception as e:
-            text = f"Failed to extract text from PPT: {e}"
-        finally:
-            pythoncom.CoUninitialize()
-    else:
-        text = "PPT file extraction is only supported on Windows."
+    try:
+        pythoncom.CoInitialize()
+        ppt = comtypes.client.CreateObject('PowerPoint.Application')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".ppt") as temp_file:
+            temp_file.write(file.read())
+            temp_file_path = temp_file.name
+        presentation = ppt.Presentations.Open(temp_file_path, ReadOnly=True)
+        for slide in presentation.Slides:
+            for shape in slide.shapes:
+                if shape.HasTextFrame and shape.TextFrame.HasText:
+                    text += shape.TextFrame.TextRange.Text + "\n"
+        presentation.Close()
+        ppt.Quit()
+        os.remove(temp_file_path)
+    except Exception as e:
+        text = f"Failed to extract text from PPT: {e}"
+    finally:
+        pythoncom.CoUninitialize()
     return text
 
 def extract_text_from_txt(file):
@@ -159,11 +150,16 @@ def generate_custom_quiz(topic, text):
     model = genai.GenerativeModel('gemini-pro')
     response = model.generate_content(f"Generate quiz questions based on the topic '{topic}' from the following text: {text}")
     questions = response.text.strip().split("\n")
-    questions = [q for q in questions if q.strip() and not q.lower().startswith("quiz questions on")]
-    questions = [q.lstrip('0123456789. ') for q in questions[:10]] 
-    return questions[:10]
+    cleaned_questions = []
+    for question in questions:
+        if "?" in question: 
+            question_clean = re.sub(r"^\d+\.\s*|\d+\s*\.\s*", "", question) 
+            question_clean = re.sub(r"^Question\s*\d+\s*:\s*", "", question_clean) 
+            cleaned_questions.append(question_clean.strip())
 
-# Streamlit app setup
+    return cleaned_questions[:10]  
+
+
 st.set_page_config(page_title="Study Helper")
 st.header("Study Helper")
 uploaded_file = st.file_uploader("Upload your document", type=list(file_type_handlers.keys()))
@@ -190,24 +186,25 @@ if uploaded_file:
                 explanation = explain_concept(concept, text)
                 st.subheader("Concept Explanation")
                 st.write(explanation)
-
         custom_topic = st.text_input("Enter a topic for custom quiz generation:", key="custom_topic")
+
         if st.button("Generate Custom Quiz"):
             if custom_topic:
                 quiz_questions = generate_custom_quiz(custom_topic, text)
-                st.subheader("Custom Quiz Questions")
+                st.session_state.quiz_questions = quiz_questions 
+                st.session_state.user_answers = [""] * len(quiz_questions)
+        if "quiz_questions" in st.session_state:
+            st.subheader("Custom Quiz Questions")
+            for i, question in enumerate(st.session_state.quiz_questions):
+                st.write(f"**Question {i+1}:** {question}")
+                st.session_state.user_answers[i] = st.text_input(f"Your answer to question {i+1}:", 
+                                                                 key=f"answer_{i}", 
+                                                                 value=st.session_state.user_answers[i])
 
-                user_answers = []
-                for i, question in enumerate(quiz_questions):
-                    st.write(f"**Question {i+1}:** {question}")
-                    answer = st.text_input(f"Your answer to question {i+1}:", key=f"answer_{i}")
-                    user_answers.append(answer)
-
-                if st.button("Submit Quiz"):
-                    correct_answers = 0
-                    correct_answers = len(user_answers) 
-                    total_questions = len(quiz_questions)
-                    st.write(f"You answered {correct_answers} out of {total_questions} questions correctly.")
+            if st.button("Submit Quiz"):
+                correct_answers = len([answer for answer in st.session_state.user_answers if answer.strip()]) 
+                total_questions = len(st.session_state.quiz_questions)
+                st.write(f"You answered {correct_answers} out of {total_questions} questions.")
 
         question = st.text_input("Ask a question based on the document:", key="question_ask")
         if question:
