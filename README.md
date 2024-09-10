@@ -1,8 +1,10 @@
                               ****Study Helper: Question Answer Chatbot****
 
-This project is a Study Helper application built with Streamlit. It allows users to upload documents (PDF, DOCX, PPTX, DOC, PPT, and TXT) and then provides several functionalities, including summarization, topic-based summaries, concept explanations, custom quiz generation, and answering questions based on the content of the uploaded document.
+VIEW THE PROJECT : https://question-answer-system.streamlit.app/
 
-Features:
+ABOUT:     This project is a Study Helper application built with Streamlit. It allows users to upload documents (PDF, DOCX, PPTX, DOC, PPT, and TXT) and then provides several functionalities, including summarization, topic-based summaries, concept explanations, custom quiz generation, and answering questions based on the content of the uploaded document.
+
+FEATURES:
         Document Upload: Upload a document in formats such as PDF, DOCX, PPTX, DOC, PPT, or TXT.
         Text Extraction: Automatically extract text from the uploaded document.
         Summarization: Generate a summary of the extracted text.
@@ -11,7 +13,7 @@ Features:
         Custom Quiz Generation: Create quiz questions based on a user-specified topic.
         Question Answering: Answer questions based on the content of the document.
         
-Requirements:
+REQUIREMENTS:
         Python 3.7+
         Streamlit
         Google Generative AI
@@ -23,7 +25,7 @@ Requirements:
         requests
 
         
-Usage:
+USE:
         Run the Streamlit App:  streamlit run app.py
         Upload Your Document:  Use the file uploader to select and upload a document in one of the supported formats.
         Summarize the Document:  A summary of the document will be generated automatically.
@@ -33,12 +35,12 @@ Usage:
         Ask a Question:  Enter a question in the input box to get an answer based on the document.
 
         
-Deploying on Streamlit Community Cloud:
+DEPLOYING:
         You can deploy the app on Streamlit Community Cloud
         Push your code to GitHub.
         Navigate to Streamlit Community Cloud and link your GitHub repository.
         Click "Deploy" to make your app live.
 
         
-Contributing:
+CONTRIBUTE:
         Contributions are welcome! Please fork the repository and submit a pull request with your changes.
