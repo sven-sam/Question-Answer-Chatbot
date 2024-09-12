@@ -4,5 +4,3 @@ pymupdf
 python-docx
 python-pptx
 requests
-comtypes
-pywin32
