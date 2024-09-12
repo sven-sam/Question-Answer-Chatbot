@@ -2,24 +2,21 @@ import os
 import tempfile
 import streamlit as st
 import google.generativeai as genai
-import fitz
+import fitz  # PyMuPDF
 import docx
 from pptx import Presentation
-import comtypes.client
-import pythoncom
 from io import BytesIO
 import requests
 import re
-
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
-os.environ["GOOGLE_CSE_ID"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
-
-google_api_key = os.getenv("GOOGLE_API_KEY")
-google_cse_id = os.getenv("GOOGLE_CSE_ID")
+google_api_key = os.getenv("AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I")
+google_cse_id = os.getenv("AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I")
 
 if not google_api_key or not google_cse_id:
     raise ValueError("GOOGLE_API_KEY or GOOGLE_CSE_ID not found in environment variables.")
 genai.configure(api_key=google_api_key)
+if os.name == 'nt':  
+    import comtypes.client
+    import pythoncom
 
 def perform_web_search(query):
     search_url = "https://www.googleapis.com/customsearch/v1"
@@ -51,25 +48,6 @@ def extract_text_from_docx(file):
         text += paragraph.text + "\n"
     return text
 
-def extract_text_from_doc(file):
-    text = ""
-    try:
-        pythoncom.CoInitialize()
-        word = comtypes.client.CreateObject('Word.Application')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".doc") as temp_file:
-            temp_file.write(file.read())
-            temp_file_path = temp_file.name
-        doc = word.Documents.Open(temp_file_path, ReadOnly=True)
-        text = doc.Content.Text
-        doc.Close(False)
-        word.Quit()
-        os.remove(temp_file_path)
-    except Exception as e:
-        text = f"Failed to extract text from DOC: {e}"
-    finally:
-        pythoncom.CoUninitialize()
-    return text
-
 def extract_text_from_pptx(file):
     text = ""
     try:
@@ -82,40 +60,64 @@ def extract_text_from_pptx(file):
         text = f"Failed to extract text from PPTX: {e}"
     return text
 
-def extract_text_from_ppt(file):
-    text = ""
-    try:
-        pythoncom.CoInitialize()
-        ppt = comtypes.client.CreateObject('PowerPoint.Application')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".ppt") as temp_file:
-            temp_file.write(file.read())
-            temp_file_path = temp_file.name
-        presentation = ppt.Presentations.Open(temp_file_path, ReadOnly=True)
-        for slide in presentation.Slides:
-            for shape in slide.shapes:
-                if shape.HasTextFrame and shape.TextFrame.HasText:
-                    text += shape.TextFrame.TextRange.Text + "\n"
-        presentation.Close()
-        ppt.Quit()
-        os.remove(temp_file_path)
-    except Exception as e:
-        text = f"Failed to extract text from PPT: {e}"
-    finally:
-        pythoncom.CoUninitialize()
-    return text
+# Only define these functions for Windows
+if os.name == 'nt':  # Windows platform
+    def extract_text_from_doc(file):
+        text = ""
+        try:
+            pythoncom.CoInitialize()
+            word = comtypes.client.CreateObject('Word.Application')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".doc") as temp_file:
+                temp_file.write(file.read())
+                temp_file_path = temp_file.name
+            doc = word.Documents.Open(temp_file_path, ReadOnly=True)
+            text = doc.Content.Text
+            doc.Close(False)
+            word.Quit()
+            os.remove(temp_file_path)
+        except Exception as e:
+            text = f"Failed to extract text from DOC: {e}"
+        finally:
+            pythoncom.CoUninitialize()
+        return text
+
+    def extract_text_from_ppt(file):
+        text = ""
+        try:
+            pythoncom.CoInitialize()
+            ppt = comtypes.client.CreateObject('PowerPoint.Application')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ppt") as temp_file:
+                temp_file.write(file.read())
+                temp_file_path = temp_file.name
+            presentation = ppt.Presentations.Open(temp_file_path, ReadOnly=True)
+            for slide in presentation.Slides:
+                for shape in slide.Shapes:
+                    if shape.HasTextFrame and shape.TextFrame.HasText:
+                        text += shape.TextFrame.TextRange.Text + "\n"
+            presentation.Close()
+            ppt.Quit()
+            os.remove(temp_file_path)
+        except Exception as e:
+            text = f"Failed to extract text from PPT: {e}"
+        finally:
+            pythoncom.CoUninitialize()
+        return text
 
 def extract_text_from_txt(file):
     text = file.read().decode("utf-8")
     return text
 
+# Set up file type handlers based on platform
 file_type_handlers = {
     "pdf": extract_text_from_pdf,
     "docx": extract_text_from_docx,
     "pptx": extract_text_from_pptx,
-    "doc": extract_text_from_doc,
-    "ppt": extract_text_from_ppt,
     "txt": extract_text_from_txt,
 }
+
+if os.name == 'nt':  # Windows platform
+    file_type_handlers["doc"] = extract_text_from_doc
+    file_type_handlers["ppt"] = extract_text_from_ppt
 
 def extract_text(file, file_type):
     handler = file_type_handlers.get(file_type)
