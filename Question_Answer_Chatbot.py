@@ -13,7 +13,7 @@ google_cse_id = os.getenv("AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I")
 
 if not google_api_key or not google_cse_id:
     raise ValueError("GOOGLE_API_KEY or GOOGLE_CSE_ID not found in environment variables.")
-genai.configure(api_key=AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I)
+genai.configure(api_key=google_api_key)
 if os.name == 'nt':  
     import comtypes.client
     import pythoncom
