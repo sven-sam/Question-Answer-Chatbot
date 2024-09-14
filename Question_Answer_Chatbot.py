@@ -5,12 +5,11 @@ import google.generativeai as genai
 import fitz
 import docx
 from pptx import Presentation
-import comtypes.client
-import pythoncom
 from io import BytesIO
 import requests
 import re
 
+# Set environment variables for Google API
 os.environ["GOOGLE_API_KEY"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
 os.environ["GOOGLE_CSE_ID"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
 
@@ -51,25 +50,6 @@ def extract_text_from_docx(file):
         text += paragraph.text + "\n"
     return text
 
-def extract_text_from_doc(file):
-    text = ""
-    try:
-        pythoncom.CoInitialize()
-        word = comtypes.client.CreateObject('Word.Application')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".doc") as temp_file:
-            temp_file.write(file.read())
-            temp_file_path = temp_file.name
-        doc = word.Documents.Open(temp_file_path, ReadOnly=True)
-        text = doc.Content.Text
-        doc.Close(False)
-        word.Quit()
-        os.remove(temp_file_path)
-    except Exception as e:
-        text = f"Failed to extract text from DOC: {e}"
-    finally:
-        pythoncom.CoUninitialize()
-    return text
-
 def extract_text_from_pptx(file):
     text = ""
     try:
@@ -82,28 +62,6 @@ def extract_text_from_pptx(file):
         text = f"Failed to extract text from PPTX: {e}"
     return text
 
-def extract_text_from_ppt(file):
-    text = ""
-    try:
-        pythoncom.CoInitialize()
-        ppt = comtypes.client.CreateObject('PowerPoint.Application')
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".ppt") as temp_file:
-            temp_file.write(file.read())
-            temp_file_path = temp_file.name
-        presentation = ppt.Presentations.Open(temp_file_path, ReadOnly=True)
-        for slide in presentation.Slides:
-            for shape in slide.shapes:
-                if shape.HasTextFrame and shape.TextFrame.HasText:
-                    text += shape.TextFrame.TextRange.Text + "\n"
-        presentation.Close()
-        ppt.Quit()
-        os.remove(temp_file_path)
-    except Exception as e:
-        text = f"Failed to extract text from PPT: {e}"
-    finally:
-        pythoncom.CoUninitialize()
-    return text
-
 def extract_text_from_txt(file):
     text = file.read().decode("utf-8")
     return text
@@ -112,8 +70,6 @@ file_type_handlers = {
     "pdf": extract_text_from_pdf,
     "docx": extract_text_from_docx,
     "pptx": extract_text_from_pptx,
-    "doc": extract_text_from_doc,
-    "ppt": extract_text_from_ppt,
     "txt": extract_text_from_txt,
 }
 
@@ -122,7 +78,7 @@ def extract_text(file, file_type):
     if handler:
         return handler(file)
     else:
-        return "Unsupported file type. Please try a PDF, DOCX, PPTX, DOC, PPT, or TXT file."
+        return "Unsupported file type. Please try a PDF, DOCX, PPTX, or TXT file."
 
 def summarize_text(text):
     model = genai.GenerativeModel('gemini-pro')
@@ -152,13 +108,12 @@ def generate_custom_quiz(topic, text):
     questions = response.text.strip().split("\n")
     cleaned_questions = []
     for question in questions:
-        if "?" in question: 
-            question_clean = re.sub(r"^\d+\.\s*|\d+\s*\.\s*", "", question)  
-            question_clean = re.sub(r"^Question\s*\d+\s*:\s*", "", question_clean)  
+        if "?" in question:
+            question_clean = re.sub(r"^\d+\.\s*|\d+\s*\.\s*", "", question)
+            question_clean = re.sub(r"^Question\s*\d+\s*:\s*", "", question_clean)
             cleaned_questions.append(question_clean.strip())
 
     return cleaned_questions[:10] 
-
 
 st.set_page_config(page_title="Study Helper")
 st.header("Study Helper")
