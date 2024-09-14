@@ -1,22 +1,28 @@
 import streamlit as st
 import tempfile
 import os
-import fitz 
+import fitz  # PyMuPDF
 import docx
 from pptx import Presentation
 import comtypes.client
 import pythoncom
 import requests
 import re
+
+# Configure environment variables
 os.environ["GOOGLE_API_KEY"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
 os.environ["GOOGLE_CSE_ID"] = "AIzaSyAWjOyvXsq6oq_uhduhvP1i4sbYEmBgN1I"
+
+# Set up API keys
 google_api_key = os.getenv("GOOGLE_API_KEY")
 google_cse_id = os.getenv("GOOGLE_CSE_ID")
 
 if not google_api_key or not google_cse_id:
     raise ValueError("GOOGLE_API_KEY or GOOGLE_CSE_ID not found in environment variables.")
 
+# Initialize the Google Generative AI Model (placeholder configuration)
 def configure_genai(api_key):
+    # Mock-up function for configuring a genai model
     print("GenAI configured with API key:", api_key)
 
 configure_genai(google_api_key)
@@ -36,6 +42,7 @@ def perform_web_search(query):
         search_results += item["snippet"] + "\n"
     return search_results
 
+# Functions to extract text from various document types
 def extract_text_from_pdf(file):
     text = ""
     pdf_document = fitz.open(stream=file.read(), filetype="pdf")
@@ -130,11 +137,12 @@ if uploaded_file:
     
     if "Failed" not in text:
         st.subheader("Document Content")
-        st.write(text)  
+        st.write(text)  # Display the extracted text for reference
 
         if st.button("Generate Quiz"):
+            # Assuming generate_custom_quiz generates questions from the text
             quiz_questions = ["What is the main topic of the document?", "What are the key details mentioned?"]
-            quiz_answers = [text.split()[0], text.split()[1]]  
+            quiz_answers = [text.split()[0], text.split()[1]]  # Simplified correct answers extraction
             st.session_state.quiz_questions = quiz_questions
             st.session_state.quiz_answers = quiz_answers
             st.session_state.user_answers = [""] * len(quiz_questions)
